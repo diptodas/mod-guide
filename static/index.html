@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mod-Guide</title>
+<style>
+  :root {
+    --panel: #1f2c44;        /* deep navy panel, as in Figure 3 */
+    --panel-2: #26354f;
+    --line: rgba(255,255,255,.14);
+    --text: #f2f4f8;
+    --muted: #9aa6bb;
+    --bubble: #e9edf4;       /* light input bubble */
+    --bubble-ink: #1b2538;
+    --pill-on: #f2f4f8;
+    --pill-on-ink: #1f2c44;
+    --accent: #7fb0e6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    font-family: system-ui, -apple-system, "Noto Sans Bengali", "Kalpurush", sans-serif;
+    background: #eef1f6; color: #1b2538; line-height: 1.5;
+    display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px;
+  }
+  .app {
+    width: 100%; max-width: 760px; background: var(--panel); color: var(--text);
+    border-radius: 18px; padding: 22px 22px 18px; box-shadow: 0 10px 30px rgba(20,30,50,.25);
+  }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 1.3rem; margin: 0; font-weight: 600; letter-spacing: .2px; }
+  .status { color: var(--muted); font-size: .8rem; }
+  .intro { color: var(--muted); font-size: .9rem; margin: 6px 0 16px; }
+
+  /* conversation area */
+  .thread { min-height: 120px; display: flex; flex-direction: column; gap: 14px; }
+  .msg-user { display: flex; gap: 10px; align-items: flex-start; }
+  .avatar {
+    flex: 0 0 30px; height: 30px; border-radius: 50%; background: var(--panel-2);
+    display: grid; place-items: center; font-size: .8rem; color: var(--muted);
+    border: 1px solid var(--line);
+  }
+  .bubble {
+    background: var(--bubble); color: var(--bubble-ink); border-radius: 14px;
+    padding: 12px 14px; font-size: 1rem; white-space: pre-wrap; max-width: 90%;
+  }
+  .reply { font-size: 1rem; white-space: pre-wrap; padding-left: 40px; }
+  .reply-meta { color: var(--muted); font-size: .78rem; padding-left: 40px; margin-top: 4px; }
+  .ref {
+    border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px;
+    padding: 10px 12px; font-size: .88rem;
+  }
+  .ref .tag { color: var(--accent); font-size: .75rem; margin-right: 8px; }
+  .ref .label { color: var(--muted); }
+  .empty { color: var(--muted); font-size: .92rem; padding: 26px 4px; text-align: center; }
+  .err { color: #ffb4b4; padding-left: 40px; }
+
+  /* roles and input */
+  .roles-label { color: var(--muted); font-size: .8rem; margin: 18px 0 8px; }
+  .roles { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill {
+    border: 1px solid var(--line); background: transparent; color: var(--text);
+    padding: 6px 12px; border-radius: 999px; font: inherit; font-size: .85rem; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pill .check { opacity: .55; font-size: .8rem; }
+  .pill.on { background: var(--pill-on); color: var(--pill-on-ink); border-color: var(--pill-on); }
+  .pill.on .check { opacity: 1; }
+
+  .composer {
+    margin-top: 14px; display: flex; gap: 10px; align-items: flex-end;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 10px;
+  }
+  textarea {
+    flex: 1; min-height: 56px; max-height: 220px; resize: vertical; border: 0; outline: none;
+    background: transparent; color: var(--text); font: inherit; font-size: 1rem; padding: 6px;
+  }
+  textarea::placeholder { color: var(--muted); }
+  .send {
+    flex: 0 0 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--pill-on); color: var(--pill-on-ink); font-size: 1.1rem;
+    display: grid; place-items: center;
+  }
+  .send:disabled { opacity: .45; cursor: default; }
+  .toggle { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: .82rem; margin-top: 10px; cursor: pointer; }
+  .toggle input { accent-color: var(--accent); }
+  details.refs { margin: 10px 0 0 40px; }
+  details.refs summary {
+    cursor: pointer; color: var(--muted); font-size: .85rem; list-style: none;
+    display: inline-flex; align-items: center; gap: 6px; user-select: none;
+  }
+  details.refs summary::-webkit-details-marker { display: none; }
+  details.refs summary::before { content: "▸"; transition: transform .15s; display: inline-block; }
+  details.refs[open] summary::before { transform: rotate(90deg); }
+  details.refs summary:hover { color: var(--text); }
+  .refs-list { display: grid; gap: 8px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Mod-Guide</h1>
+    <span class="status" id="status"></span>
+  </header>
+  <p class="intro">Check a comment for content that may be insensitive toward Hindu and Chakma communities.
+     Feedback is grounded in explanations written by community members.</p>
+
+  <div class="thread" id="thread">
+    <div class="empty">Paste a post or comment below, choose a role, and send.</div>
+  </div>
+
+  <div class="roles-label">Five different roles</div>
+  <div class="roles" id="roles"></div>
+
+  <div class="composer">
+    <textarea id="text" placeholder="Paste a post or comment here (Bengali or English)."></textarea>
+    <button class="send" id="go" title="Send" aria-label="Send">&#10148;</button>
+  </div>
+  <label class="toggle">
+    <input type="checkbox" id="rag" checked> Ground the feedback in the community corpus (RAG)
+  </label>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let persona = 'mediator';
+let roleLabels = {};
+
+async function init() {
+  const res = await fetch('/api/status');
+  const status = await res.json();
+  roleLabels = status.personas;
+  const roles = $('roles');
+  for (const [key, label] of Object.entries(status.personas)) {
+    const short = label.split(' (')[0];
+    const b = document.createElement('button');
+    b.className = 'pill' + (key === persona ? ' on' : '');
+    b.dataset.key = key;
+    b.innerHTML = `<span class="check">&#10003;</span>${esc(short)}`;
+    b.title = label;
+    b.addEventListener('click', () => selectRole(key));
+    roles.appendChild(b);
+  }
+  $('status').textContent =
+    `${status.corpus_entries} examples · ${status.retriever} · ` +
+    (status.llm_enabled ? status.model : 'retrieval-only');
+}
+
+function selectRole(key) {
+  persona = key;
+  document.querySelectorAll('.pill').forEach(b => b.classList.toggle('on', b.dataset.key === key));
+}
+
+function errorText(detail) {
+  if (Array.isArray(detail)) return detail.map(d => d.msg || JSON.stringify(d)).join('; ');
+  return detail || 'Request failed';
+}
+
+async function run() {
+  const text = $('text').value.trim();
+  if (!text) return;
+  const btn = $('go');
+  btn.disabled = true;
+  const thread = $('thread');
+  thread.innerHTML = `
+    <div class="msg-user"><div class="avatar">you</div><div class="bubble">${esc(text)}</div></div>
+    <div class="reply" style="color:var(--muted)">Checking...</div>`;
+  try {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, persona, use_rag: $('rag').checked })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(errorText(data.detail));
+    const refs = data.sources.map((s, i) => `
+      <div class="ref">
+        <span class="tag">[${i + 1}] ${esc(s.community)}</span><span class="tag">score ${s.score}</span>
+        <div><span class="label">Example:</span> ${esc(s.speech)}</div>
+        <div><span class="label">Explanation:</span> ${esc(s.explanation)}</div>
+      </div>`).join('');
+    thread.innerHTML = `
+      <div class="msg-user"><div class="avatar">you</div><div class="bubble">${esc(text)}</div></div>
+      <div class="reply">${esc(data.feedback)}</div>
+      <div class="reply-meta">${esc(roleLabels[data.persona] || data.persona)} · ${esc(data.mode)} · RAG ${data.rag ? 'on' : 'off'}</div>
+      ${refs ? `<details class="refs"><summary>Community references (${data.sources.length})</summary><div class="refs-list">${refs}</div></details>` : ''}`;
+  } catch (e) {
+    thread.innerHTML += `<div class="err">${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+$('go').addEventListener('click', run);
+$('text').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); run(); }
+});
+init();
+</script>
+</body>
+</html>

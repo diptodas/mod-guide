@@ -1,0 +1,17 @@
+# Python environment and caches
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets: API keys must never be committed
+config.env
+.env
+
+# Research data: the annotated corpus of community-written content
+corpus_data/
+mod-guide-offline.html
+corpus.json
+
+# Archives and macOS files
+*.zip
+.DS_Store
